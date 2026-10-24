@@ -344,6 +344,39 @@ button {
   }
 }
 
+
+.sensitivity-control {
+  width: 100%;
+  max-width: 430px;
+  padding: 0 8px;
+}
+
+.sensitivity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: #91a5c4;
+  font-size: clamp(10px, 1.4vw, 13px);
+  font-weight: bold;
+}
+
+#sensitivityValue {
+  color: #49a6ff;
+  font-size: 13px;
+}
+
+#sensitivity {
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  accent-color: #2587ff;
+  cursor: pointer;
+  touch-action: pan-x;
+}
+
+
 @media (max-height: 400px) {
   .app {
     padding: 5px 9px;
@@ -406,7 +439,21 @@ button {
   <main class="main">
 
     <section class="card steering-card">
-      <div class="section-title">STEERING</div>
+      <div class="section-title">STEERING</div>  
+      <div class="sensitivity-control">
+         <div class="sensitivity-header">
+            <span>STEERING SENSITIVITY</span>
+            <span id="sensitivityValue">30%</span>
+        </div>
+        <input
+          type="range"
+          id="sensitivity"
+          min="10"
+          max="100"
+          value="30"
+          step="5"
+        >
+      </div>
 
       <div class="joystick" id="joystick">
         <span class="joy-direction joy-up">▲</span>
@@ -678,6 +725,18 @@ const stick = $("stick");
 
 let joyPointer = null;
 
+const sensitivitySlider = document.getElementById("sensitivity");
+
+let steeringSensitivity = 0.30;
+
+sensitivitySlider.addEventListener("input", () => {
+  steeringSensitivity = Number(sensitivitySlider.value) / 100;
+
+  document.getElementById("sensitivityValue").textContent =
+    sensitivitySlider.value + "%";
+});
+
+
 function updateJoystick(event) {
   const rect = joystick.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
@@ -698,7 +757,7 @@ function updateJoystick(event) {
 
   const joyX = dx / maxRadius;
   const joyY = dy / maxRadius;
-  const deadZone = 0.22;
+  const deadZone = 0.10 + (1 - steeringSensitivity) * 0.35;
 
   activeBits.clear();
 
