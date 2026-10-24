@@ -757,8 +757,7 @@ function updateJoystick(event) {
 
   const joyX = dx / maxRadius;
   const joyY = dy / maxRadius;
-  const deadZone = 0.10 + (1 - steeringSensitivity) * 0.35;
-
+  const deadZone = 0.05 + (1 - steeringSensitivity) * 0.65;
   activeBits.clear();
 
   if (joyY < -deadZone) activeBits.add(1);
