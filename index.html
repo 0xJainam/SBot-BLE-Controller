@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>SBot BLE Controller</title>
+
+<style>
+* { box-sizing: border-box; }
+button:active {
+  background: #00c853 !important;
+  transform: scale(0.95);
+}
+body {
+  margin: 0;
+  padding: 18px;
+  background: #101827;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.panel {
+  max-width: 370px;
+  margin: 18px auto;
+  padding: 18px;
+  background: #1d293b;
+  border-radius: 18px;
+}
+
+button {
+  min-height: 65px;
+  border: 0;
+  border-radius: 13px;
+  background: #2675e8;
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#connect {
+  width: 100%;
+  background: #16845b;
+  font-size: 17px;
+  min-height: 48px;
+}
+
+#status {
+  font-size: 14px;
+  color: #ffcc66;
+  overflow-wrap: anywhere;
+}
+
+.pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 22px 0;
+}
+
+#stop {
+  background: #d83c4c;
+  font-size: 15px;
+}
+
+.auxrow {
+  display: flex;
+  gap: 10px;
+}
+
+.aux {
+  width: 50%;
+  min-height: 48px;
+  font-size: 15px;
+  background: #475569;
+}
+
+input[type=range] {
+  width: 100%;
+  margin: 16px 0;
+}
+</style>
+</head>
+
+<body>
+<h2>🤖 SBot BLE Controller</h2>
+
+<div class="panel">
+  <button id="connect">CONNECT TO ROBOT</button>
+  <p id="status">Not connected</p>
+
+  <div class="pad">
+    <div></div>
+    <button class="move" data-bit="1">▲</button>
+    <div></div>
+
+    <button class="move" data-bit="4">◀</button>
+    <button id="stop">STOP</button>
+    <button class="move" data-bit="8">▶</button>
+
+    <div></div>
+    <button class="move" data-bit="2">▼</button>
+    <div></div>
+  </div>
+
+  <label>
+    Speed: <span id="speedValue">180</span>/255
+  </label>
+  <input id="speed" type="range" min="0"
+         max="255" value="180">
+
+  <div class="auxrow">
+    <button class="aux" id="horn">HORN</button>
+    <button class="aux" id="light">LIGHT ON/OFF</button>
+  </div>
+</div>
+
+<script>
+const SERVICE_UUID =
+  "12345678-1234-1234-1234-1234567890ab";
+
+const CHARACTERISTIC_UUID =
+  "12345678-1234-1234-1234-1234567890ac";
+
+let device = null;
+let characteristic = null;
+let activeBits = new Set();
+let repeatTimer = null;
+let connected = false;
+let sendQueue = Promise.resolve();
+
+const statusText = document.getElementById("status");
+const speedSlider = document.getElementById("speed");
+
+function setStatus(text, color = "#ffcc66") {
+  statusText.textContent = text;
+  statusText.style.color = color;
+}
+
+speedSlider.addEventListener("input", () => {
+  document.getElementById("speedValue").textContent =
+    speedSlider.value;
+  sendDrive();
+});
+
+async function sendText(text) {
+  if (!connected || !characteristic) return;
+
+  // Serialize writes to avoid overlapping BLE operations.
+  sendQueue = sendQueue.then(async () => {
+    if (!connected || !characteristic) return;
+
+    const data = new TextEncoder().encode(text);
+
+    if (characteristic.writeValueWithoutResponse) {
+      await characteristic.writeValueWithoutResponse(data);
+    } else {
+      await characteristic.writeValue(data);
+    }
+  }).catch(error => {
+    console.error("BLE write failed:", error);
+  });
+
+  return sendQueue;
+}
+
+function getMask() {
+  let mask = 0;
+  for (const bit of activeBits) mask |= bit;
+  return mask;
+}
+
+function sendDrive() {
+  if (!connected) return;
+
+  // D,button-mask,speed
+  sendText(`D,${getMask()},${speedSlider.value}`);
+}
+
+function startRepeating() {
+  if (repeatTimer !== null) return;
+
+  sendDrive();
+  repeatTimer = setInterval(sendDrive, 50);
+}
+
+function stopRepeating() {
+  if (repeatTimer !== null) {
+    clearInterval(repeatTimer);
+    repeatTimer = null;
+  }
+}
+
+function releaseAll() {
+  activeBits.clear();
+  stopRepeating();
+
+  if (connected) {
+    sendText(`D,0,${speedSlider.value}`);
+  }
+}
+
+async function connectBLE() {
+  if (!navigator.bluetooth) {
+    setStatus(
+      "Web Bluetooth unavailable. Try a supported Android browser over HTTPS.",
+      "#ff7777"
+    );
+    return;
+  }
+
+  try {
+    setStatus("Choose SBot-Car3...");
+
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: "SBot-Car3" }],
+      optionalServices: [SERVICE_UUID]
+    });
+
+    device.addEventListener("gattserverdisconnected", () => {
+      connected = false;
+      characteristic = null;
+      activeBits.clear();
+      stopRepeating();
+      setStatus("Disconnected — motors should stop", "#ff7777");
+    });
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+
+    characteristic =
+      await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+    connected = true;
+    setStatus("Connected — ready to drive", "#75e0a0");
+
+    sendDrive();
+  } catch (error) {
+    connected = false;
+    characteristic = null;
+    setStatus("Connection failed: " + error.message, "#ff7777");
+  }
+}
+
+document.getElementById("connect").addEventListener(
+  "click", connectBLE
+);
+
+document.querySelectorAll(".move").forEach(button => {
+  button.addEventListener("pointerdown", event => {
+    event.preventDefault();
+    if (!connected) return;
+
+    activeBits.add(Number(button.dataset.bit));
+    startRepeating();
+
+    try {
+      button.setPointerCapture(event.pointerId);
+    } catch (_) {}
+  });
+
+  const release = event => {
+    activeBits.delete(Number(button.dataset.bit));
+
+    if (activeBits.size === 0) {
+      stopRepeating();
+      if (connected) sendDrive();
+    } else {
+      sendDrive();
+    }
+  };
+
+  button.addEventListener("pointerup", release);
+  button.addEventListener("pointercancel", release);
+  button.addEventListener("lostpointercapture", release);
+});
+
+document.getElementById("stop").addEventListener("click", () => {
+  releaseAll();
+  if (connected) sendText("S");
+});
+
+document.getElementById("horn").addEventListener("click", () => {
+  sendText("H");
+});
+
+document.getElementById("light").addEventListener("click", () => {
+  sendText("G");
+});
+
+window.addEventListener("blur", releaseAll);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) releaseAll();
+});
+</script>
+</body>
+</html>
