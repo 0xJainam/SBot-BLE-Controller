@@ -7,59 +7,88 @@
 <title>SBot BLE Controller</title>
 
 <style>
-* { box-sizing: border-box; }
-button:active {
-  background: #00c853 !important;
-  transform: scale(0.95);
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
-body {
+
+html {
+  width: 100%;
+  height: 100%;
   margin: 0;
-  padding: 18px;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: 10px;
+  overflow: hidden;
   background: #101827;
   color: white;
   font-family: Arial, sans-serif;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+h2 {
+  margin: 0;
+  font-size: clamp(18px, 4vw, 24px);
 }
 
 .panel {
-  max-width: 370px;
-  margin: 18px auto;
-  padding: 18px;
+  width: min(100%, 400px);
+  max-height: 100%;
+  margin: 0 auto;
+  padding: clamp(10px, 3vw, 18px);
   background: #1d293b;
-  border-radius: 18px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#status {
+  margin: 0;
+  font-size: 13px;
+}
+
+.pad {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(6px, 2vw, 12px);
+  margin: 6px 0;
 }
 
 button {
-  min-height: 65px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: clamp(52px, 12vh, 78px);
+  padding: 4px;
   border: 0;
-  border-radius: 13px;
+  border-radius: 12px;
   background: #2675e8;
   color: white;
-  font-size: 22px;
+  font-size: clamp(20px, 6vw, 28px);
   font-weight: bold;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
 
-#connect {
-  width: 100%;
-  background: #16845b;
-  font-size: 17px;
-  min-height: 48px;
-}
-
-#status {
-  font-size: 14px;
-  color: #ffcc66;
-  overflow-wrap: anywhere;
-}
-
-.pad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 22px 0;
+button:active {
+  filter: brightness(1.25);
 }
 
 #stop {
@@ -69,19 +98,43 @@ button {
 
 .auxrow {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .aux {
-  width: 50%;
-  min-height: 48px;
-  font-size: 15px;
+  min-height: 42px;
+  height: auto;
+  font-size: 14px;
   background: #475569;
 }
 
 input[type=range] {
   width: 100%;
-  margin: 16px 0;
+  margin: 4px 0;
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (max-height: 500px) {
+  body {
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .panel {
+    padding: 6px;
+    gap: 4px;
+  }
+
+  .pad {
+    gap: 5px;
+    margin: 2px 0;
+  }
+
+  button {
+    height: min(15vh, 56px);
+  }
 }
 </style>
 </head>
@@ -217,9 +270,11 @@ async function connectBLE() {
     setStatus("Choose SBot-Car3...");
 
     device = await navigator.bluetooth.requestDevice({
-      filters: [{ name: "SBot-Car3" }],
+      filters: [
+         { namePrefix: "SBot-Car" }
+      ],
       optionalServices: [SERVICE_UUID]
-    });
+   });
 
     device.addEventListener("gattserverdisconnected", () => {
       connected = false;
