@@ -482,6 +482,12 @@ let accelerating = false;
 let braking = false;
 let driveTimer = null;
 let sendQueue = Promise.resolve();
+const MIN_SPEED = 150;
+const MAX_SPEED = 255;
+
+const ACCELERATION_STEP = 3;  // Speed increases by 3 every 50 ms
+const DECELERATION_STEP = 1;  // Speed decreases by 1 every 50 ms
+const BRAKE_STEP = 5;         // Brake reduces speed faster
 
 const $ = id => document.getElementById(id);
 
@@ -551,26 +557,39 @@ function startDriveLoop() {
     }
 
     if (braking) {
-      speed = Math.max(0, speed - 15);
+      // Brake smoothly down to the minimum, then stop.
+      speed = Math.max(0, speed - BRAKE_STEP);
 
       if (speed === 0) {
         activeBits.clear();
       }
     } else if (accelerating) {
-      // Speed reaches 255 in approximately 2.1 seconds.
-      speed = Math.min(255, speed + 6);
+      // Start moving at the minimum speed.
+      if (speed < MIN_SPEED) {
+        speed = MIN_SPEED;
+      } else {
+        speed = Math.min(
+          MAX_SPEED,
+          speed + ACCELERATION_STEP
+        );
+      }
     } else if (speed > 0) {
-      // Gradually slow down after releasing the accelerator.
-      speed = Math.max(0, speed - 2);
+      // Gentle deceleration when accelerator is released.
+      speed = Math.max(
+        0,
+        speed - DECELERATION_STEP
+      );
     }
 
     updateUI();
     sendDrive();
 
-    if (speed === 0 &&
-        !accelerating &&
-        !braking &&
-        activeBits.size === 0) {
+    if (
+      speed === 0 &&
+      !accelerating &&
+      !braking &&
+      activeBits.size === 0
+    ) {
       clearInterval(driveTimer);
       driveTimer = null;
       sendDrive();
