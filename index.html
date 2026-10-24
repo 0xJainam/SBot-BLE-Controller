@@ -1,12 +1,24 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>SBot BLE Controller</title>
+      content="width=device-width, initial-scale=1, maximum-scale=1,
+               user-scalable=no, viewport-fit=cover">
+<title>SBot Driving Controller</title>
 
 <style>
+:root {
+  --bg: #09111e;
+  --panel: #142238;
+  --blue: #2587ff;
+  --green: #32d583;
+  --red: #ff4658;
+  --text: #f2f6ff;
+  --muted: #91a5c4;
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -14,7 +26,7 @@
   user-select: none;
 }
 
-html {
+html, body {
   width: 100%;
   height: 100%;
   margin: 0;
@@ -23,16 +35,94 @@ html {
 }
 
 body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+  touch-action: none;
+}
+
+button {
+  color: white;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.app {
   width: 100%;
   height: 100vh;
   height: 100dvh;
-  margin: 0;
-  padding: 10px;
-  overflow: hidden;
-  background: #101827;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand {
+  font-size: clamp(16px, 2.5vw, 25px);
+  font-weight: 800;
+  letter-spacing: .5px;
+}
+
+.connection {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font-size: clamp(11px, 1.5vw, 14px);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #ffbf47;
+}
+
+.top-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.small-btn {
+  background: #243651;
+  border: 1px solid #385273;
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+#connect {
+  background: var(--blue);
+}
+
+.main {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .9fr);
+  gap: clamp(12px, 3vw, 40px);
+}
+
+.card {
+  min-width: 0;
+  min-height: 0;
+  background: var(--panel);
+  border: 1px solid #263d5d;
+  border-radius: 20px;
+  padding: clamp(10px, 2vw, 20px);
+}
+
+.steering-card {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -40,136 +130,339 @@ body {
   gap: 8px;
 }
 
-h2 {
-  margin: 0;
-  font-size: clamp(18px, 4vw, 24px);
+.section-title {
+  font-size: clamp(12px, 1.8vw, 16px);
+  font-weight: bold;
+  color: var(--muted);
+  letter-spacing: 1px;
 }
 
-.panel {
-  width: min(100%, 400px);
+.joystick {
+  width: min(100%, 62dvh, 430px);
+  aspect-ratio: 1;
+  flex-shrink: 1;
+  min-height: 0;
   max-height: 100%;
-  margin: 0 auto;
-  padding: clamp(10px, 3vw, 18px);
-  background: #1d293b;
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  border-radius: 50%;
+  position: relative;
+  background:
+    radial-gradient(circle, #1a2b43 0%, #101e32 67%, #0b1728 68%);
+  border: 5px solid #304968;
+  box-shadow: inset 0 0 0 7px #101b2c,
+              0 0 24px #1769d020;
+  touch-action: none;
 }
 
-#status {
-  margin: 0;
-  font-size: 13px;
+.joystick::before {
+  content: "";
+  position: absolute;
+  inset: 19%;
+  border: 1px dashed #506986;
+  border-radius: 50%;
+  pointer-events: none;
 }
 
-.pad {
-  width: 100%;
+.joy-direction {
+  position: absolute;
+  color: #b9cbe4;
+  font-size: clamp(17px, 3vw, 27px);
+  font-weight: bold;
+  pointer-events: none;
+}
+
+.joy-up {
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.joy-down {
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.joy-left {
+  left: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.joy-right {
+  right: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.stick {
+  width: 29%;
+  aspect-ratio: 1;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #49a6ff, #0960ce);
+  border: 4px solid #79bdff;
+  box-shadow: 0 6px 20px #0008, 0 0 22px #2587ff55;
+  pointer-events: none;
+}
+
+.steering-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.drive-card {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(6px, 2vw, 12px);
-  margin: 6px 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(8px, 2vw, 20px);
+  align-items: stretch;
 }
 
-button {
-  width: 100%;
+.pedal-column {
   min-width: 0;
   min-height: 0;
-  height: clamp(52px, 12vh, 78px);
-  padding: 4px;
-  border: 0;
-  border-radius: 12px;
-  background: #2675e8;
-  color: white;
-  font-size: clamp(20px, 6vw, 28px);
-  font-weight: bold;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-button:active {
-  filter: brightness(1.25);
-}
-
-#stop {
-  background: #d83c4c;
-  font-size: 15px;
-}
-
-.auxrow {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
 }
 
-.aux {
-  min-height: 42px;
-  height: auto;
-  font-size: 14px;
-  background: #475569;
+.pedal-label {
+  color: var(--muted);
+  font-size: clamp(11px, 1.7vw, 15px);
+  font-weight: bold;
+  letter-spacing: 1px;
 }
 
-input[type=range] {
+.pedal {
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  margin: 4px 0;
-  touch-action: pan-x;
-  user-select: none;
-  -webkit-user-select: none;
+  max-width: 170px;
+  border-radius: 22px;
+  border: 2px solid #36516f;
+  background: linear-gradient(160deg, #203754, #111e31);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
 }
 
-@media (max-height: 500px) {
-  body {
-    padding: 4px;
-    gap: 4px;
+.pedal .pedal-icon {
+  font-size: clamp(28px, 6vw, 52px);
+  line-height: 1;
+}
+
+.pedal .pedal-name {
+  font-size: clamp(12px, 2vw, 17px);
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.pedal .pedal-hint {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.accelerator {
+  border-color: #237fe8;
+}
+
+.accelerator.active {
+  background: linear-gradient(160deg, #1475ed, #0c3e84);
+  box-shadow: 0 0 25px #1682ff40;
+}
+
+.brake {
+  border-color: #713343;
+}
+
+.brake.active {
+  background: linear-gradient(160deg, #f04456, #7e1d30);
+  box-shadow: 0 0 25px #ff465840;
+}
+
+.speed-readout {
+  font-size: clamp(19px, 3vw, 30px);
+  font-weight: 900;
+}
+
+.speed-readout small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.meter {
+  width: 100%;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 99px;
+  overflow: hidden;
+  background: #2c3e57;
+}
+
+.meter-fill {
+  width: 0%;
+  height: 100%;
+  background: var(--blue);
+  transition: width .05s linear;
+}
+
+@media (orientation: portrait) {
+  .app {
+    padding: 7px;
+    gap: 7px;
   }
 
-  .panel {
-    padding: 6px;
-    gap: 4px;
+  .main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .85fr);
+    gap: 8px;
   }
 
-  .pad {
+  .card {
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .drive-card {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .pedal {
+    border-radius: 15px;
+  }
+
+  .joystick {
+    width: min(100%, 45dvh, 430px);
+  }
+}
+
+@media (max-height: 400px) {
+  .app {
+    padding: 5px 9px;
     gap: 5px;
-    margin: 2px 0;
   }
 
-  button {
-    height: min(15vh, 56px);
+  .topbar {
+    gap: 5px;
+  }
+
+  .small-btn {
+    padding: 7px 9px;
+  }
+
+  .card {
+    padding: 7px;
+  }
+
+  .main {
+    gap: 8px;
+  }
+
+  .pedal-column {
+    gap: 4px;
+  }
+
+  .pedal {
+    gap: 7px;
+  }
+
+  .steering-hint {
+    display: none;
   }
 }
 </style>
 </head>
 
 <body>
-<h2>🤖 SBot BLE Controller</h2>
+<div class="app">
 
-<div class="panel">
-  <button id="connect">CONNECT TO ROBOT</button>
-  <p id="status">Not connected</p>
+  <header class="topbar">
+    <div>
+      <div class="brand">🤖 SBOT DRIVE</div>
+      <div class="connection">
+        <span class="dot" id="statusDot"></span>
+        <span id="status">Not connected</span>
+      </div>
+    </div>
 
-  <div class="pad">
-    <div></div>
-    <button class="move" data-bit="1">▲</button>
-    <div></div>
+    <div class="top-actions">
+      <button class="small-btn" id="fullscreen">
+        FULLSCREEN
+      </button>
+      <button class="small-btn" id="connect">
+        CONNECT
+      </button>
+    </div>
+  </header>
 
-    <button class="move" data-bit="4">◀</button>
-    <button id="stop">STOP</button>
-    <button class="move" data-bit="8">▶</button>
+  <main class="main">
 
-    <div></div>
-    <button class="move" data-bit="2">▼</button>
-    <div></div>
-  </div>
+    <section class="card steering-card">
+      <div class="section-title">STEERING</div>
 
-  <label>
-    Speed: <span id="speedValue">180</span>/255
-  </label>
-  <input id="speed" type="range" min="0"
-         max="255" value="180">
+      <div class="joystick" id="joystick">
+        <span class="joy-direction joy-up">▲</span>
+        <span class="joy-direction joy-down">▼</span>
+        <span class="joy-direction joy-left">◀</span>
+        <span class="joy-direction joy-right">▶</span>
+        <div class="stick" id="stick"></div>
+      </div>
 
-  <div class="auxrow">
-    <button class="aux" id="horn">HORN</button>
-    <button class="aux" id="light">LIGHT ON/OFF</button>
-  </div>
+      <div class="steering-hint">
+        DRAG TO DRIVE · RELEASE TO STOP
+      </div>
+    </section>
+
+    <section class="card drive-card">
+
+      <div class="pedal-column">
+        <div class="pedal-label">ACCELERATOR</div>
+
+        <button class="pedal accelerator" id="accelerator">
+          <span class="pedal-icon">⚡</span>
+          <span class="pedal-name">ACCEL</span>
+          <span class="pedal-hint">HOLD TO INCREASE</span>
+        </button>
+
+        <div class="speed-readout">
+          <span id="speedValue">0</span>
+          <small>/ 255</small>
+        </div>
+
+        <div class="meter">
+          <div class="meter-fill" id="meterFill"></div>
+        </div>
+      </div>
+
+      <div class="pedal-column">
+        <div class="pedal-label">BRAKE</div>
+
+        <button class="pedal brake" id="brake">
+          <span class="pedal-icon">▼</span>
+          <span class="pedal-name">BRAKE</span>
+          <span class="pedal-hint">HOLD TO SLOW</span>
+        </button>
+
+        <div class="speed-readout" id="driveState">READY</div>
+
+        <div class="meter">
+          <div class="meter-fill" id="brakeMeter"
+               style="background:var(--red)"></div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
 </div>
 
 <script>
@@ -181,38 +474,51 @@ const CHARACTERISTIC_UUID =
 
 let device = null;
 let characteristic = null;
-let activeBits = new Set();
-let repeatTimer = null;
 let connected = false;
+
+let speed = 0;
+let activeBits = new Set();
+let accelerating = false;
+let braking = false;
+let driveTimer = null;
 let sendQueue = Promise.resolve();
 
-const statusText = document.getElementById("status");
-const speedSlider = document.getElementById("speed");
+const $ = id => document.getElementById(id);
 
-function setStatus(text, color = "#ffcc66") {
-  statusText.textContent = text;
-  statusText.style.color = color;
+function setStatus(message, color) {
+  $("status").textContent = message;
+  $("statusDot").style.background = color;
 }
 
-speedSlider.addEventListener("input", () => {
-  document.getElementById("speedValue").textContent =
-    speedSlider.value;
-  sendDrive();
-});
+function updateUI() {
+  $("speedValue").textContent = speed;
+  $("meterFill").style.width = (speed / 255 * 100) + "%";
+  $("brakeMeter").style.width = braking ? "100%" : "0%";
+
+  $("driveState").textContent = braking
+    ? "BRAKING"
+    : accelerating
+      ? "ACCELERATING"
+      : speed > 0
+        ? "COASTING"
+        : "READY";
+}
 
 async function sendText(text) {
   if (!connected || !characteristic) return;
 
-  // Serialize writes to avoid overlapping BLE operations.
+  const currentCharacteristic = characteristic;
+
   sendQueue = sendQueue.then(async () => {
-    if (!connected || !characteristic) return;
+    if (!connected ||
+        characteristic !== currentCharacteristic) return;
 
     const data = new TextEncoder().encode(text);
 
-    if (characteristic.writeValueWithoutResponse) {
-      await characteristic.writeValueWithoutResponse(data);
+    if (currentCharacteristic.writeValueWithoutResponse) {
+      await currentCharacteristic.writeValueWithoutResponse(data);
     } else {
-      await characteristic.writeValue(data);
+      await currentCharacteristic.writeValue(data);
     }
   }).catch(error => {
     console.error("BLE write failed:", error);
@@ -230,58 +536,99 @@ function getMask() {
 function sendDrive() {
   if (!connected) return;
 
-  // D,button-mask,speed
-  sendText(`D,${getMask()},${speedSlider.value}`);
+  const mask = braking || speed === 0 ? 0 : getMask();
+  sendText(`D,${mask},${speed}`);
 }
 
-function startRepeating() {
-  if (repeatTimer !== null) return;
+function startDriveLoop() {
+  if (driveTimer !== null) return;
 
-  sendDrive();
-  repeatTimer = setInterval(sendDrive, 50);
+  driveTimer = setInterval(() => {
+    if (!connected) {
+      clearInterval(driveTimer);
+      driveTimer = null;
+      return;
+    }
+
+    if (braking) {
+      speed = Math.max(0, speed - 15);
+
+      if (speed === 0) {
+        activeBits.clear();
+      }
+    } else if (accelerating) {
+      // Speed reaches 255 in approximately 2.1 seconds.
+      speed = Math.min(255, speed + 6);
+    } else if (speed > 0) {
+      // Gradually slow down after releasing the accelerator.
+      speed = Math.max(0, speed - 2);
+    }
+
+    updateUI();
+    sendDrive();
+
+    if (speed === 0 &&
+        !accelerating &&
+        !braking &&
+        activeBits.size === 0) {
+      clearInterval(driveTimer);
+      driveTimer = null;
+      sendDrive();
+    }
+  }, 50);
 }
 
-function stopRepeating() {
-  if (repeatTimer !== null) {
-    clearInterval(repeatTimer);
-    repeatTimer = null;
-  }
-}
-
-function releaseAll() {
+function resetJoystick() {
+  joyPointer = null;
+  stick.style.left = "50%";
+  stick.style.top = "50%";
   activeBits.clear();
-  stopRepeating();
+}
+
+function stopAll() {
+  accelerating = false;
+  braking = false;
+  activeBits.clear();
+  speed = 0;
+
+  $("accelerator").classList.remove("active");
+  $("brake").classList.remove("active");
+
+  resetJoystick();
+  updateUI();
+
+  if (driveTimer !== null) {
+    clearInterval(driveTimer);
+    driveTimer = null;
+  }
 
   if (connected) {
-    sendText(`D,0,${speedSlider.value}`);
+    sendText("D,0,0");
+    sendText("S");
   }
 }
+
+// BLE CONNECTION
 
 async function connectBLE() {
   if (!navigator.bluetooth) {
-    setStatus(
-      "Web Bluetooth unavailable. Try a supported Android browser over HTTPS.",
-      "#ff7777"
-    );
+    setStatus("Use a supported browser over HTTPS", "#ff4658");
     return;
   }
 
   try {
-    setStatus("Choose SBot-Car3...");
+    setStatus("Choose your robot...", "#ffbf47");
 
     device = await navigator.bluetooth.requestDevice({
-      filters: [
-         { namePrefix: "SBot-Car" }
-      ],
+      filters: [{ namePrefix: "SBot-Car" }],
       optionalServices: [SERVICE_UUID]
-   });
+    });
 
     device.addEventListener("gattserverdisconnected", () => {
       connected = false;
       characteristic = null;
-      activeBits.clear();
-      stopRepeating();
-      setStatus("Disconnected — motors should stop", "#ff7777");
+      stopAll();
+      setStatus("Disconnected", "#ff4658");
     });
 
     const server = await device.gatt.connect();
@@ -291,67 +638,179 @@ async function connectBLE() {
       await service.getCharacteristic(CHARACTERISTIC_UUID);
 
     connected = true;
-    setStatus("Connected — ready to drive", "#75e0a0");
-
+    setStatus("Connected", "#32d583");
     sendDrive();
+
   } catch (error) {
     connected = false;
     characteristic = null;
-    setStatus("Connection failed: " + error.message, "#ff7777");
+    setStatus("Connection failed", "#ff4658");
+    console.error(error);
   }
 }
 
-document.getElementById("connect").addEventListener(
-  "click", connectBLE
+$("connect").addEventListener("click", connectBLE);
+
+// JOYSTICK
+// Forward = 1, Reverse = 2, Left = 4, Right = 8
+
+const joystick = $("joystick");
+const stick = $("stick");
+
+let joyPointer = null;
+
+function updateJoystick(event) {
+  const rect = joystick.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const maxRadius = rect.width * 0.32;
+
+  let dx = event.clientX - cx;
+  let dy = event.clientY - cy;
+  const distance = Math.hypot(dx, dy);
+
+  if (distance > maxRadius) {
+    dx = dx / distance * maxRadius;
+    dy = dy / distance * maxRadius;
+  }
+
+  stick.style.left = `calc(50% + ${dx}px)`;
+  stick.style.top = `calc(50% + ${dy}px)`;
+
+  const joyX = dx / maxRadius;
+  const joyY = dy / maxRadius;
+  const deadZone = 0.22;
+
+  activeBits.clear();
+
+  if (joyY < -deadZone) activeBits.add(1);
+  if (joyY > deadZone) activeBits.add(2);
+  if (joyX < -deadZone) activeBits.add(4);
+  if (joyX > deadZone) activeBits.add(8);
+
+  startDriveLoop();
+  sendDrive();
+}
+
+joystick.addEventListener("pointerdown", event => {
+  if (!connected || joyPointer !== null) return;
+
+  event.preventDefault();
+  joyPointer = event.pointerId;
+  joystick.setPointerCapture(event.pointerId);
+  updateJoystick(event);
+});
+
+joystick.addEventListener("pointermove", event => {
+  if (event.pointerId !== joyPointer) return;
+
+  event.preventDefault();
+  updateJoystick(event);
+});
+
+function releaseJoystick(event) {
+  if (event.pointerId !== joyPointer) return;
+
+  resetJoystick();
+
+  if (connected) {
+    startDriveLoop();
+    sendDrive();
+  }
+}
+
+joystick.addEventListener("pointerup", releaseJoystick);
+joystick.addEventListener("pointercancel", releaseJoystick);
+
+joystick.addEventListener("lostpointercapture", event => {
+  if (event.pointerId === joyPointer) {
+    resetJoystick();
+    sendDrive();
+  }
+});
+
+// ACCELERATOR
+
+$("accelerator").addEventListener("pointerdown", event => {
+  if (!connected || braking) return;
+
+  event.preventDefault();
+  accelerating = true;
+  $("accelerator").classList.add("active");
+  $("accelerator").setPointerCapture(event.pointerId);
+
+  startDriveLoop();
+});
+
+function releaseAccelerator() {
+  accelerating = false;
+  $("accelerator").classList.remove("active");
+}
+
+$("accelerator").addEventListener("pointerup", releaseAccelerator);
+$("accelerator").addEventListener("pointercancel", releaseAccelerator);
+$("accelerator").addEventListener(
+  "lostpointercapture", releaseAccelerator
 );
 
-document.querySelectorAll(".move").forEach(button => {
-  button.addEventListener("pointerdown", event => {
-    event.preventDefault();
-    if (!connected) return;
+// BRAKE
 
-    activeBits.add(Number(button.dataset.bit));
-    startRepeating();
+$("brake").addEventListener("pointerdown", event => {
+  if (!connected) return;
 
-    try {
-      button.setPointerCapture(event.pointerId);
-    } catch (_) {}
-  });
+  event.preventDefault();
+  braking = true;
+  accelerating = false;
 
-  const release = event => {
-    activeBits.delete(Number(button.dataset.bit));
+  $("accelerator").classList.remove("active");
+  $("brake").classList.add("active");
+  $("brake").setPointerCapture(event.pointerId);
 
-    if (activeBits.size === 0) {
-      stopRepeating();
-      if (connected) sendDrive();
+  startDriveLoop();
+  sendDrive();
+});
+
+function releaseBrake() {
+  braking = false;
+  $("brake").classList.remove("active");
+
+  if (connected) {
+    startDriveLoop();
+    sendDrive();
+  }
+}
+
+$("brake").addEventListener("pointerup", releaseBrake);
+$("brake").addEventListener("pointercancel", releaseBrake);
+$("brake").addEventListener("lostpointercapture", releaseBrake);
+
+// FULLSCREEN
+
+$("fullscreen").addEventListener("click", async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+
+      if (screen.orientation?.lock) {
+        await screen.orientation.lock("landscape").catch(() => {});
+      }
     } else {
-      sendDrive();
+      await document.exitFullscreen();
     }
-  };
-
-  button.addEventListener("pointerup", release);
-  button.addEventListener("pointercancel", release);
-  button.addEventListener("lostpointercapture", release);
+  } catch (error) {
+    console.warn("Fullscreen/orientation unavailable:", error);
+  }
 });
 
-document.getElementById("stop").addEventListener("click", () => {
-  releaseAll();
-  if (connected) sendText("S");
-});
+// SAFETY: RELEASE CONTROLS ON FOCUS LOSS
 
-document.getElementById("horn").addEventListener("click", () => {
-  sendText("H");
-});
-
-document.getElementById("light").addEventListener("click", () => {
-  sendText("G");
-});
-
-window.addEventListener("blur", releaseAll);
+window.addEventListener("blur", stopAll);
 
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) releaseAll();
+  if (document.hidden) stopAll();
 });
+
+updateUI();
 </script>
 </body>
 </html>
